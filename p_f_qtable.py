@@ -2,13 +2,12 @@ import sys
 import numpy as np
 #np.set_printoptions(threshold=sys.maxsize)
 
-DECAY_RATE = .9999995
+DECAY_RATE = .9999993
 # if some random number is less than epsilon, a random number is chosen
 epsilon_minimum = .1
 # learning rate
 alpha = .00001
-#N = 5000000
-N = 1000000
+N = 3000000
 
 def readFile():
     file_data = np.loadtxt('equity.dat')
@@ -112,7 +111,20 @@ def dealHands():
     y_hand.append(card3)
     return x_hand, y_hand
 
-def pickAction(z_hand, Q_x, Q_y):
+def createHandNumber(z_hand):
+    hand_matrix = [[0 for j in range(13)] for i in range(13)]
+    if z_hand[0][1] == z_hand[1][1]:
+        hand_matrix[max(z_hand[0][0], z_hand[1][0])][min(z_hand[0][0], z_hand[1][0])] = 1
+    else:
+        hand_matrix[min(z_hand[0][0], z_hand[1][0])][max(z_hand[0][0], z_hand[1][0])] = 1
+    n = 0
+    for i in range(12, -1, -1):
+        for j in range(12, -1, -1):
+            if hand_matrix[i][j] == 1:
+                return n
+            n += 1
+
+def pickAction(hand_number, Q_z, epsilon):
     rand = np.random.rand(2)
     # take random action if some random number < epsilon
     if rand[0] < epsilon:
@@ -124,11 +136,8 @@ def pickAction(z_hand, Q_x, Q_y):
     # take action with highest q value if some random number > epsilon
     else:
 #        print("not random")
-        z_action = computeSum(theta_z, z_phi_aggressive) > computeSum(theta_z, z_phi_passive)
-    if z_action == True:
-        return z_action, z_phi_aggressive
-    else:
-        return z_action, z_phi_passive
+        z_action = np.argmax(Q_z[hand_number])
+    return z_action
 
 # creates a table mapped from a line number
 def createTable():
@@ -184,56 +193,37 @@ def showDown(x_equity, y_equity, x_stack, y_stack, p):
     y_stack += y_equity * p + .5 * (1 - (x_equity + y_equity))
     return x_stack, y_stack
 
-#def updateTheta(x_theta, y_theta, x_phi, y_phi, x_stack, y_stack):
-#    Q_x = computeSum(x_theta, x_phi)
-#    Q_y = computeSum(y_theta, y_phi)
-#    
-#    x_theta += alpha * (x_stack - Q_x) * x_phi
-#    y_theta += alpha * (y_stack - Q_y) * y_phi
-#    return x_theta, y_theta
+def updateQ(Q_z, z_stack, z_hand_number, action):
+    Q_z[z_hand_number][action] += alpha * (z_stack - Q_z[z_hand_number][action])
+    return Q_z
 
-def createVisualization(x_hand, y_hand, x_theta, y_theta):
-    x_visualize = [[0 for j in range(13)] for i in range(13)]
-    y_visualize = [[0 for j in range(13)] for i in range(13)]
+def createVisualization(Q_z):
+    n = 0
     for i in range(13):
+        print("")
         for j in range(13):
-            x_phi_aggressive, x_phi_passive = makeFeatures([[i, 1], [j, i > j]], True), makeFeatures([[i, 1], [j, i > j]], False)
-            x_EV_push, x_EV_fold = computeSum(x_phi_aggressive, x_theta), computeSum(x_phi_passive, x_theta)
-            
-            y_phi_aggressive, y_phi_passive = makeFeatures([[i, 1], [j, i > j]], True), makeFeatures([[i, 1], [j, i > j]], False)
-            y_EV_call, y_EV_fold = computeSum(y_phi_aggressive, x_theta), computeSum(y_phi_passive, y_theta)
-            
-            if x_EV_push > x_EV_fold:
-                x_visualize[i][j] = 1
-            if y_EV_call > y_EV_fold:
-                y_visualize[i][j] = 1
-    for i in range(12, -1, -1):
-        print(x_visualize[i][12], x_visualize[i][11], x_visualize[i][10], x_visualize[i][9], \
-              x_visualize[i][8], x_visualize[i][7], x_visualize[i][6], x_visualize[i][5], \
-              x_visualize[i][4], x_visualize[i][3], x_visualize[i][2], x_visualize[i][1], \
-              x_visualize[i][0])
-    print("\n\n")
-    for i in range(12, -1, -1):
-        print(y_visualize[i][12], y_visualize[i][11], y_visualize[i][10], y_visualize[i][9], \
-              y_visualize[i][8], y_visualize[i][7], y_visualize[i][6], y_visualize[i][5], \
-              y_visualize[i][4], y_visualize[i][3], y_visualize[i][2], y_visualize[i][1], \
-              y_visualize[i][0])
+            print(np.argmax(Q_z[n]), end = " ")
+            n += 1
+    print("")
+    total_aggressive = 0
+    for i in range(len(Q_z)):
+        if np.argmax(Q_z[i]) == 1:
+            total_aggressive += 1
+    print(total_aggressive/len(Q_z))
+    pass
 
-def printUpdate(x_theta, y_theta, epsilon, n):
-    print("\n")
+def printUpdate(Q_x, Q_y, epsilon, n):
+    print("\n\n")
     print("%d / %d" %(n/100, N/100))
     print("exploration: ", epsilon)
-    print("x_theta = ", x_theta)
-    print("y_theta = ", y_theta)
+#    print("Q_x = ", Q_x)
+#    print("Q_y = ", Q_y)
     pass
 
 def main():
     epsilon = 1
-    # format Q_x/y[13][4][13][4]
-    Q_x = [[[[0 for i in range(4)] for j in range(13)] for k in range(4)] for l in range(13)]
-    Q_y = [[[[0 for i in range(4)] for j in range(13)] for k in range(4)] for l in range(13)]
-    Q_x = np.array(Q_x)
-    Q_x = np.array(Q_x)
+    Q_x = [[9 for j in range(2)] for i in range(169)]
+    Q_y = [[9 for j in range(2)] for i in range(169)]
     file_data = readFile()
     table = createTable()
     x_win, y_win, tie = createEquityFunctions(file_data, len(table))
@@ -243,13 +233,14 @@ def main():
         x_stack, y_stack = 9.5, 9
         
         x_hand, y_hand = dealHands()
+        x_hand_number = createHandNumber(x_hand)
+        y_hand_number = createHandNumber(y_hand)
         hands = x_hand[0] + x_hand[1] + y_hand[0] + y_hand[1]
         x_equity = x_win[lineLookup(hands)]
         y_equity = y_win[lineLookup(hands)]
 #        tie_equity = tie[lineLookup(hands)]
-        x_push, x_phi = pickAction(x_hand, x_theta, epsilon)
-        y_call, y_phi = pickAction(y_hand, y_theta, epsilon)
-#        x_push, y_call = True, True
+        x_push = pickAction(x_hand_number, Q_x, epsilon)
+        y_call = pickAction(y_hand_number, Q_y, epsilon)
         if x_push:
             if y_call:
                 p = 2 * s
@@ -260,11 +251,13 @@ def main():
         else:
             y_stack += p
         
-        x_theta, y_theta = updateTheta(x_theta, y_theta, x_phi, y_phi, x_stack, y_stack)
+        Q_x = updateQ(Q_x, x_stack, x_hand_number, x_push)
+        Q_y = updateQ(Q_y, y_stack, y_hand_number, y_call)
         epsilon = epsilon * DECAY_RATE
         epsilon = max(epsilon, epsilon_minimum)
         if n % 100000 == 0:
-            printUpdate(x_theta, y_theta, epsilon, n)
-    createVisualization(x_hand, y_hand, x_theta, y_theta)
+            printUpdate(Q_x, Q_y, epsilon, n)
+            createVisualization(Q_x)
+            createVisualization(Q_y)
 
 main()
