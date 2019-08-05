@@ -6,7 +6,7 @@ DECAY_RATE = .99999993
 # if some random number is less than epsilon, a random number is chosen
 epsilon_minimum = .1
 # learning rate
-alpha = .000008
+alpha = .00004
 N = 50000000
 
 def readFile():
@@ -121,7 +121,8 @@ def makeFeatures(z_hand, z_action):
            z_hand[1][0]/13 if z_action else 0,
            (z_hand[0][0] - z_hand[1][0])**2 if z_action else 0,
            1 if (z_suited and z_action) else 0,
-           1 if (z_action and z_action) else 0]
+           1 if (z_action and z_action) else 0,
+           1 if z_hand[0][0] == z_hand[1][0] and z_action else 0]
     return np.array(phi)
 
 def computeSum(theta_z, phi_z):
@@ -210,30 +211,30 @@ def updateTheta(x_theta, y_theta, x_phi, y_phi, x_stack, y_stack):
     y_theta += alpha * (y_stack - Q_y) * y_phi
     return x_theta, y_theta
 
-def createVisualization(x_hand, y_hand, x_theta, y_theta):
-    x_visualize = [[0 for j in range(13)] for i in range(13)]
-    y_visualize = [[0 for j in range(13)] for i in range(13)]
+def createVisualization(z_hand, z_theta):
+    z_visualize = [[0 for j in range(13)] for i in range(13)]
     for i in range(13):
         for j in range(13):
-            x_phi_aggressive, x_phi_passive = makeFeatures([[i, 1], [j, i < j]], True), \
-                                              makeFeatures([[i, 1], [j, i < j]], False)
-            x_EV_push, x_EV_fold = computeSum(x_phi_aggressive, x_theta), \
-                                   computeSum(x_phi_passive, x_theta)
-            
-            y_phi_aggressive, y_phi_passive = makeFeatures([[i, 1], [j, i < j]], True), \
-                                              makeFeatures([[i, 1], [j, i < j]], False)
-            y_EV_call, y_EV_fold = computeSum(y_phi_aggressive, x_theta), \
-                                   computeSum(y_phi_passive, y_theta)
-            
-            if x_EV_push > x_EV_fold:
-                x_visualize[12 - i][12 - j] = 1
-            if y_EV_call > y_EV_fold:
-                y_visualize[12 - i][12 - j] = 1
-    for i in range(13):
-        print(x_visualize[i])
-    print("\n\n")
-    for i in range(13):
-        print(y_visualize[i])
+            z_phi_aggressive, z_phi_passive = makeFeatures([[i, 1], [j, i > j]], True), \
+                                              makeFeatures([[i, 1], [j, i > j]], False)
+            z_EV_push, z_EV_fold = computeSum(z_phi_aggressive, z_theta), \
+                                   computeSum(z_phi_passive, z_theta)
+            if z_EV_push > z_EV_fold:
+                z_visualize[i][j] = 1
+#            if x_EV_push > x_EV_fold:
+#                x_visualize[12 - i][12 - j] = 1
+#            if y_EV_call > y_EV_fold:
+#                y_visualize[12 - i][12 - j] = 1
+#    for i in range(13):
+#        print(x_visualize[i])
+#    print("\n\n")
+#    for i in range(13):
+#        print(y_visualize[i])
+    for i in range(12, -1, -1):
+        print("")
+        for j in range(12, -1, -1):
+            print(z_visualize[i][j], end = " ")
+    print("")
     pass
 
 def printUpdate(x_theta, y_theta, epsilon, n):
@@ -247,8 +248,8 @@ def printUpdate(x_theta, y_theta, epsilon, n):
 
 def main():
     epsilon = 1
-    x_theta = np.ones(6)
-    y_theta = np.ones(6)
+    x_theta = np.ones(7)
+    y_theta = np.ones(7)
     file_data = readFile()
     table = createTable()
     x_win, y_win, tie = createEquityFunctions(file_data, len(table))
@@ -280,6 +281,7 @@ def main():
         epsilon = max(epsilon, epsilon_minimum)
         if n % 200000 == 0:
             printUpdate(x_theta, y_theta, epsilon, n)
-            createVisualization(x_hand, y_hand, x_theta, y_theta)
+            createVisualization(x_hand, x_theta)
+            createVisualization(y_hand, y_theta)
 
 main()
