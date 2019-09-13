@@ -2,12 +2,12 @@ import sys
 import numpy as np
 #np.set_printoptions(threshold=sys.maxsize)
 
-DECAY_RATE = .9999993
+DECAY_RATE = .9999999
 # if some random number is less than epsilon, a random number is chosen
 epsilon_minimum = .1
 # learning rate
-alpha = .00001
-N = 3000000
+alpha = .0001
+N = 10000000
 
 def readFile():
     file_data = np.loadtxt('equity.dat')

@@ -1,12 +1,12 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
-DECAY_RATE = .99999991
+DECAY_RATE = .99999992
 # if some random number is less than epsilon, a random number is chosen
 epsilon_minimum = .1
 # learning rate
 alpha = .0001
-N = 10000000
+N = 20000000
 
 def pickAction(x_hand, y_hand, Q_x, Q_y, epsilon):
     rand = np.random.rand(8)
@@ -21,7 +21,8 @@ def pickAction(x_hand, y_hand, Q_x, Q_y, epsilon):
     # take action with highest q value if some random number > epsilon
     else:
 #        print("not random")
-        if np.argmax(Q_x[x_hand][:2]) == True:
+#        if np.argmax(Q_x[x_hand][:2]) == True:
+        if np.argmax(Q_x[x_hand][-3:]) == 1:
             x_bet = True
         else:
             x_bet = False
@@ -89,54 +90,68 @@ def updateQ(x_stack, y_stack, x_hand, y_hand, x_bet, y_call, x_call, y_bet, Q_x,
         Q_x[x_hand][x_bet] = Q_x[x_hand][x_bet] + alpha * (x_stack - Q_x[x_hand][x_bet])
         Q_x[x_hand][x_call + 2] = Q_x[x_hand][x_call + 2] + alpha * (x_stack - Q_x[x_hand][x_call + 2])
         Q_y[y_hand][y_bet + 2] = Q_y[y_hand][y_bet + 2] + alpha * (y_stack - Q_y[y_hand][y_bet + 2])
-#    # we do this so that x picks from the best option of either a bet, or the weighted average of the ev of check/fold and check/call
-#    count = 0
-#    total_ev_check_fold = 0
-#    total_ev_check_call = 0
-#    count2 = 0
-#    for i in range(len(Q_x)):
-#        if np.argmax(Q_x[i][-2:]) == 0:
-#            total_ev_check_fold += Q_x[i][2]
-#            count += 1
-#        else:
-#            total_ev_check_call += Q_x[i][3] # this shouldn't ever change
-#            count2 += 1
-#    print(Q_x[0][2], Q_x[0][3])
-#    print(count)
-#    print(count2)
-#    percentage_check_fold = count / len(Q_x)
-#    percentage_check_call = 1 - percentage_check_fold
-#    print(total_ev_check_fold * percentage_check_fold, total_ev_check_call * percentage_check_call)
-#    if total_ev_check_fold * percentage_check_fold > total_ev_check_call * percentage_check_call:
-#        best_future_action = 2
-#    else:
-#        best_future_action = 3
-#    print("best future action = ", best_future_action)
-##    input()
-#    Q_x[x_hand][0] = max(Q_x[x_hand][2], Q_x[x_hand][best_future_action])
     pass
 
 def printResults(Q_x, Q_y):
+    for i in range(100):
+        print(Q_x[i])
+    print("\n\n")
+    for i in range(100):
+        print(Q_y[i])
+#    hand_axis = []
+#    action_axis_x_bet = []
+#    action_axis_y_call = []
+#    action_axis_x_call = []
+#    action_axis_y_bet = []
+#    for i in range(100):
+#        hand_axis.append(i)
+#        action_axis_x_bet.append(np.argmax(Q_x[i][:2]))
+#        action_axis_y_call.append(np.argmax(Q_y[i][:2]))
+#        action_axis_x_call.append(np.argmax(Q_x[i][-2:]))
+#        action_axis_y_bet.append(np.argmax(Q_y[i][-2:]))
+#    plt.plot(hand_axis, action_axis_x_bet, label='x bet')
+#    plt.plot(hand_axis, action_axis_y_call, label='y call')
+#    plt.plot(hand_axis, action_axis_x_call, label='x call')
+#    plt.plot(hand_axis, action_axis_y_bet, label='y bet')
+#    plt.legend()
+#    plt.show()
+    
     hand_axis = []
-    action_axis_x_bet = []
-    action_axis_y_call = []
-    action_axis_x_call = []
-    action_axis_y_bet = []
+#    q_axis_x_check = []
+    q_axis_x_bet = []
+    q_axis_x_fold = []
+    q_axis_x_call = []
     for i in range(100):
         hand_axis.append(i)
-        action_axis_x_bet.append(np.argmax(Q_x[i][:2]))
-        action_axis_y_call.append(np.argmax(Q_y[i][:2]))
-        action_axis_x_call.append(np.argmax(Q_x[i][-2:]))
-        action_axis_y_bet.append(np.argmax(Q_y[i][-2:]))
-    plt.plot(hand_axis, action_axis_x_bet, label='x bet')
-    plt.plot(hand_axis, action_axis_y_call, label='y call')
-    plt.plot(hand_axis, action_axis_x_call, label='x call')
-    plt.plot(hand_axis, action_axis_y_bet, label='y bet')
+#        q_axis_x_check.append(Q_x[i][0])
+        q_axis_x_bet.append(Q_x[i][1])
+        q_axis_x_fold.append(Q_x[i][2])
+        q_axis_x_call.append(Q_x[i][3])
+#    plt.plot(hand_axis, q_axis_x_check, label='x check')
+    plt.plot(hand_axis, q_axis_x_bet, label='x bet')
+    plt.plot(hand_axis, q_axis_x_fold, label='x check/fold')
+    plt.plot(hand_axis, q_axis_x_call, label='x check/call')
     plt.legend()
     plt.show()
-    print(Q_x)
-    print("\n\n")
-    print(Q_y)
+    
+    hand_axis = []
+    q_axis_y_fold = []
+    q_axis_y_call = []
+    q_axis_y_check = []
+    q_axis_y_bet = []
+    for i in range(100):
+        hand_axis.append(i)
+        q_axis_y_fold.append(Q_y[i][0])
+        q_axis_y_call.append(Q_y[i][1])
+        q_axis_y_check.append(Q_y[i][2])
+        q_axis_y_bet.append(Q_y[i][3])
+    plt.plot(hand_axis, q_axis_y_fold, label='y fold')
+    plt.plot(hand_axis, q_axis_y_call, label='y call')
+    plt.plot(hand_axis, q_axis_y_check, label='y check')
+    plt.plot(hand_axis, q_axis_y_bet, label='y bet')
+    plt.legend()
+    plt.show()
+    
     pass
 
 def main():
